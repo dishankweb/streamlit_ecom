@@ -956,7 +956,7 @@ with tab4: #Deepak
         )
         st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
-        st.write("Top selling products")
+        st.write("Top most selling products")
         temp = ecom_monthly_product_agg[ecom_monthly_product_agg['Product Name'].isin(top_products)]
         chart = alt.Chart(temp).mark_line().encode(
         x='Month',
@@ -967,7 +967,7 @@ with tab4: #Deepak
         st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
         
-        st.write("Bad selling products")
+        st.write("Bottom most selling products")
         temp = ecom_monthly_product_agg[ecom_monthly_product_agg['Product Name'].isin(worst_products)]
         chart = alt.Chart(temp).mark_line().encode(
         x='Month',
