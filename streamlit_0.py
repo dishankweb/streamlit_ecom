@@ -84,7 +84,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([s.center(20,"\u2001") for s 
 # listTabs = ['Business Overview', 'Website vs Marketplace', 'Geo Sales', 'Product Insights', 'Retention', 'Performance Marketing']
 # tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([s.center(20,"\u2001") for s in listTabs]) # [s.center(29,"\u2001")
 # tab1, tab2 = st.tabs(['Revenue', 'Retention'])
-    
+
 total_orders = df['Order ID'].nunique()
 total_revenue = df['Net Sales'].sum()
 aov = total_revenue / total_orders if total_orders else 0
@@ -155,7 +155,7 @@ with tab1:
 
         with kpi4:
             kpi_tile(kpi4,tile_text='Blended New Customers', tile_label='', tile_value=new_customers,
-                     tile_value_prefix='',delta_value=(new_customers-new_customers_delta)*100/new_customers_delta,integer=True)
+                     tile_value_prefix='',delta_value=2,integer=True)
             # tile = kpi4.container(height=240)
             # tile.header('Blended New Customers')
             # tile.metric(label="", value=f"{new_customers:,}", delta='6%') 
@@ -165,21 +165,21 @@ with tab1:
 
         with kpi5:
             kpi_tile(kpi5,tile_text="**Blended Repeat Customers**", tile_label='', tile_value=repeat_customers,
-                     tile_value_prefix='',delta_value=(repeat_customers-repeat_customers_delta)*100/repeat_customers_delta,integer=True)
+                     tile_value_prefix='',delta_value=1.2,integer=True)
             # tile = kpi5.container(height=240)
             # tile.header('Blended Repeat Customers')
             # tile.metric(label="", value=f"{math.floor(total_orders*0.75):,}", delta='6%')     
 
         with kpi6:
             kpi_tile(kpi6,tile_text='Blended Cancellation Rate', tile_label='', tile_value=1.3,
-                     tile_value_prefix='',delta_value='4',integer=False, delta_color_inversion='inverse', tile_value_suffix='%')
+                     tile_value_prefix='',delta_value=0.8,integer=False, delta_color_inversion='inverse', tile_value_suffix='%')
             # tile = kpi6.container(height=240)
             # tile.header('Blended Cancellation Rate')
             # tile.metric(label="", value=f"{math.floor(total_orders*0.75):,}", delta='6%', delta_color='inverse') 
 
         with kpi7:
             kpi_tile(kpi7,tile_text='Blended Discounts', tile_label='', tile_value=total_revenue*0.12,
-                     tile_value_prefix='$',delta_value='1.4',integer=True, delta_color_inversion='inverse')
+                     tile_value_prefix='$',delta_value=1.5,integer=True, delta_color_inversion='inverse')
             # tile = kpi7.container(height=240)
             # tile.header('Blended Discounts')
             # tile.metric(label="", value=f"{math.floor(total_orders*0.75):,}", delta='6%', delta_color='inverse') 
@@ -264,7 +264,7 @@ with tab2:
         
 
         kpi_tile(col_1,tile_text='Revenue', tile_label='', tile_value=total_orders,
-                        tile_value_prefix='',delta_value='2.5%',integer=True)
+                        tile_value_prefix='',delta_value=3,integer=True)
         # tile = col_1.container(height=240)
         # tile.subheader('Revenue')
         # # tile.metric(label="", value=f"{total_orders:,}", delta='-1.2%')
@@ -280,7 +280,7 @@ with tab2:
             st.line_chart(chart_data)
 
         kpi_tile(col2_1,tile_text='Orders', tile_label='', tile_value=total_orders_marketplace,
-                        tile_value_prefix='',delta_value='9.3%',integer=True)
+                        tile_value_prefix='',delta_value=1.2,integer=True)
         # tile = col2_1.container(height=240)
         # tile.subheader('Orders')
         # tile.metric(label="", value=f"{total_orders_marketplace:,}", delta='9.3%')
@@ -297,7 +297,7 @@ with tab2:
             # st.bar_chart(chart_data)
 
         kpi_tile(col3_1,tile_text='AOV', tile_label='', tile_value=total_orders_marketplace,
-                        tile_value_prefix='',delta_value='9.3%',integer=True)
+                        tile_value_prefix='',delta_value=2.1,integer=True)
         
         # tile = col3_1.container(height=240)
         # tile.subheader('AOV')
