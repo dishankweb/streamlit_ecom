@@ -5,5 +5,5 @@ def kpi_tile(kpi,tile_text,tile_label,tile_value,delta_value,delta_value_suffix=
     tile = kpi.container(height=tile_height)
     tile.markdown(f'**{tile_text}**', help = 'definition')
     tile_value_updated = [f'{tile_value:,.0f}' if integer else f'{tile_value:,.2f}']
-    tile.metric(label=tile_label, value=f"{tile_value_prefix}{tile_value_updated[0]}{tile_value_suffix}", 
-                delta=f'{delta_value}{delta_value_suffix}',delta_color=delta_color_inversion)
+    tile.metric(label=tile_label, value=f"{tile_value_prefix}{tile_value_updated[0]}{tile_value_suffix}",
+                delta=f'{delta_value:,.1f}{delta_value_suffix}',delta_color=delta_color_inversion)
