@@ -7,64 +7,37 @@ import numpy as np
 import math
 import datetime
 import uuid
-# import streamlit as st
-# import pandas as pd
-# import plotly.express as px
-# from faker import Faker
-# import random
-# import numpy as np
-# import math
-# from datetime import datetime, timedelta
-# import streamlit as st
-# import pandas as pd
-# import plotly.express as px
-# from faker import Faker
-# import random
-# import numpy as np
-# import math
 # import matplotlib.pyplot as plt
 import altair as alt
 import plotly.graph_objects as go
+from dateutil.relativedelta import relativedelta
 
-def date_change_timedelta(string_1):
-    return datetime.datetime.strptime(string_1, "%Y-%m-%d").date()
+# src imports
+from src.charts.tile import kpi_tile
+from src.charts.charts import default_chart,twin_axis_chart
+
+date_today = datetime.datetime.now().date()
+date_today = datetime.date(2024, 2, 23)
 
 st.set_page_config(layout="wide", page_title="E-commerce Dashboard")
 
-# Generate fake e-commerce data (this should be replaced with your actual data loading logic)
-# def generate_data(num_records=1000):
-#     fake = Faker()
-#     categories = ['Electronics', 'Clothing', 'Home & Garden', 'Beauty & Health', 'Sports & Outdoors']
-#     sales_channels = ['Brand', 'Marketplace']
-#     regions = ['North America', 'Europe', 'Asia', 'South America', 'Africa']
-    
-#     data = {
-#         'Order ID': [fake.uuid4() for _ in range(num_records)],
-#         'Purchase Date': [fake.date_between(start_date='-2y', end_date='today') for _ in range(num_records)],
-#         'Product Name': [fake.word().capitalize() for _ in range(num_records)],
-#         'Product Category': [random.choice(categories) for _ in range(num_records)],
-#         'Customer Region': [random.choice(regions) for _ in range(num_records)],
-#         'State': [fake.state() for _ in range(num_records)],
-#         'City': [fake.city() for _ in range(num_records)],
-#         'Order Value': [random.uniform(20, 2000) for _ in range(num_records)],
-#         'Shipping Cost': [random.uniform(5, 50) for _ in range(num_records)],
-#         'Items per Order': [random.randint(1, 5) for _ in range(num_records)],
-#         'Customer Acquisition Cost': [random.uniform(10, 100) for _ in range(num_records)],
-#         'Promo/Discount': [random.uniform(0, 0.3) * random.choice([0, random.uniform(20, 2000)]) for _ in range(num_records)],
-#         'Days to Ship (DTU)': [random.randint(1, 10) for _ in range(num_records)],
-#         'Sales Channel': [random.choice(sales_channels) for _ in range(num_records)],
-#         'Customer Type': np.random.choice(['New', 'Repeat'], num_records),
-#     }
-    
-#     df = pd.DataFrame(data)
-#     df['Gross Sales'] = df['Order Value']
-#     df['Net Sales'] = df['Order Value'] - df['Promo/Discount']
-#     return df
+def date_change_timedelta(string_1): # convert date string to timedelta
+    return datetime.datetime.strptime(string_1, "%Y-%m-%d").date()
 
-# Load data
-# df = generate_data()
-df = pd.read_csv('fake_ecom_data.csv')
-df['Purchase Date'] = df['Purchase Date'].apply(date_change_timedelta) # string to timedelta
+def previous_time_delta_percentage(dataframe, date_today):
+    start_date = date_today.replace(day=1)
+    dataframe_ = dataframe[(dataframe['Purchase Date'] >= start_date) & (dataframe['Purchase Date'] <= date_today)]
+    delta_start_date = start_date - relativedelta(months=1)
+    delta_end_date = date_today - relativedelta(months=1)
+    dataframe_delta = dataframe[(dataframe['Purchase Date'] >= delta_start_date) & (dataframe['Purchase Date'] <= delta_end_date)]
+    return dataframe_, dataframe_delta
+
+with open('style.css') as f:
+    st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
+
+# Main df read
+df = pd.read_csv('fake_ecom_data.csv', encoding='utf-8')
+df['Purchase Date'] = df['Purchase Date'].apply(date_change_timedelta) # date string to timedelta
 
 # Streamlit dashboard layout
 
@@ -73,7 +46,7 @@ with col1:
     st.title('E-Commerce Executive Dashboard')
 with col2:
     option = st.selectbox('',
-        ('Last 7 Days', 'Last 15 Days', 'Last 30 Days', 'This Month', 'This Quarter', 'This Year', 'All Data', 'Custom Range'))
+        ('This Month','Last 7 Days', 'Last 15 Days', 'Last 30 Days', 'This Quarter', 'This Year', 'All Data', 'Custom Range'))
 
 if option == 'Last 7 Days': 
     end_date = df.iloc[df['Purchase Date'].idxmax()]['Purchase Date']
@@ -87,6 +60,11 @@ elif option == 'Last 30 Days':
     end_date = df.iloc[df['Purchase Date'].idxmax()]['Purchase Date']
     start_date = end_date - pd.Timedelta(days=30)
     df = df[(df['Purchase Date'] > start_date) & (df['Purchase Date'] <= end_date)]
+elif option == 'This Month':
+    # end_date = df.iloc[df['Purchase Date'].idxmax()]['Purchase Date']
+    # start_date = end_date - pd.Timedelta(days=7)
+    # df = df[(df['Purchase Date'] > start_date) & (df['Purchase Date'] <= end_date)]
+    df,df_delta = previous_time_delta_percentage(dataframe=df, date_today=date_today)
 else:
     pass
 
@@ -99,7 +77,8 @@ repeat_customers = df[df['Customer Type'] == 'Repeat'].shape[0]
 
 # Display KPIs
 
-listTabs = ['Business Overview', 'Website vs Marketplace', 'Geo Sales', 'Product Insights', 'Retention', 'Cross-Sell', 'Performance Marketing']
+listTabs = ['Business Overview', 'Website vs Marketplace', 'Geo Sales', 'Product Insights', 'Retention', 
+            'Cross-Sell', 'Performance Marketing']
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([s.center(20,"\u2001") for s in listTabs]) # [s.center(29,"\u2001")
 
 # listTabs = ['Business Overview', 'Website vs Marketplace', 'Geo Sales', 'Product Insights', 'Retention', 'Performance Marketing']
@@ -111,8 +90,6 @@ total_revenue = df['Net Sales'].sum()
 aov = total_revenue / total_orders if total_orders else 0
 # Run the Streamlit app by saving this script as `app.py` and running `streamlit run app.py` in your terminal.
 
-
-
 with tab1:
     
     empty, empty,empty, col_4 = st.columns(4)
@@ -123,17 +100,9 @@ with tab1:
         # df = generate_data()
 
         # KPIs
-        total_revenue = df['Net Sales'].sum()
-        total_orders = df['Order ID'].nunique()
-        average_order_value = df['Net Sales'].mean()
         new_customers = df[df['Customer Type'] == 'New'].shape[0]
         repeat_customers = df[df['Customer Type'] == 'Repeat'].shape[0]
-
-        # Display KPIs
-        # listTabs = ['Revenue', 'Retention']
-        # tab1, tab2 = st.tabs([s.center(29,"\u2001") for s in listTabs])
-        # tab1, tab2 = st.tabs(['Revenue', 'Retention'])
-    
+ 
         total_orders = df['Order ID'].nunique()
         total_orders_website = df.loc[df['Sales Channel']== 'Mobile App', :]['Order ID'].nunique()
         total_orders_marketplace = df.loc[df['Sales Channel']== 'Online', :]['Order ID'].nunique()
@@ -144,96 +113,118 @@ with tab1:
         aov_website = total_revenue_website / total_orders_website if total_orders_website else 0
         aov_marketplace = total_revenue_marketplace / total_orders_marketplace if total_orders_marketplace else 0
 
+        # Delta KPIs
+        new_customers_delta = df_delta[df_delta['Customer Type'] == 'New'].shape[0]
+        repeat_customers_delta = df_delta[df_delta['Customer Type'] == 'Repeat'].shape[0]
+
+        total_orders_delta = df_delta['Order ID'].nunique()
+        total_orders_website_delta = df_delta.loc[df_delta['Sales Channel']== 'Mobile App', :]['Order ID'].nunique()
+        total_orders_marketplace_delta = df_delta.loc[df_delta['Sales Channel']== 'Online', :]['Order ID'].nunique()
+        total_revenue_delta = df_delta['Net Sales'].sum()
+        total_revenue_website_delta = df_delta.loc[df_delta['Sales Channel']== 'Mobile App', :]['Net Sales'].sum()
+        total_revenue_marketplace_delta = df_delta.loc[df_delta['Sales Channel']== 'Online', :]['Net Sales'].sum()
+        aov_delta = total_revenue_delta / total_orders_delta if total_orders else 0
+        aov_website_delta = total_revenue_website_delta / total_orders_website_delta if total_orders_website_delta else 0
+        aov_marketplace_delta = total_revenue_marketplace_delta / total_orders_marketplace_delta if total_orders_marketplace_delta else 0
     
     
     kpi1, kpi2, kpi3, kpi4 = st.columns(4) # row 1 - 4 KPIs
-    kpi5, kpi6, kpi7 = st.columns(3) # row 2 - 3 KPIs
+    
     
     with st.container():
         with kpi1:
-            # st.subheader("Total Orders")
-            
-            tile = kpi1.container(height=240)
-            tile.header('Blended Revenue')
-            # tile.metric(label="", value=f"{total_orders:,}", delta='-1.2%')
-            tile.metric(label="", value=f"${total_revenue:,.2f}", delta='9.3%')
+            kpi_tile(kpi1,tile_text='Blended Revenue', tile_label='', tile_value=total_revenue,
+                     tile_value_prefix='$',delta_value=(total_revenue-total_revenue_delta)*100/total_revenue_delta,integer=True)
+            # tile = kpi1.container(height=240)
+            # tile.header('Blended Revenue')
+            # tile.metric(label="", value=f"${total_revenue:,.2f}", delta='9.3%')
 
         with kpi2:
-            tile = kpi2.container(height=240)
-            tile.header('Blended Orders')
-            # tile.metric(label="", value=f"${total_revenue:,.2f}", delta='9.3%')
-            tile.metric(label="", value=f"{total_orders:,}", delta='-1.2%')
+            kpi_tile(kpi2,tile_text='Blended Orders', tile_label='', tile_value=total_orders,
+                     tile_value_prefix='',delta_value=(total_orders-total_orders_delta)*100/total_orders_delta,integer=True)
+            # tile = kpi2.container(height=240)
+            # tile.header('Blended Orders')
+            # tile.metric(label="", value=f"{total_orders:,}", delta='-1.2%')
             
         with kpi3:
-            tile = kpi3.container(height=240)
-            tile.header('Blended AOV')
-            tile.metric(label="", value=f"${aov:,.2f}", delta='11%')
+            kpi_tile(kpi3,tile_text='Blended AOV', tile_label='', tile_value=aov,
+                     tile_value_prefix='$',delta_value=(aov-aov_delta)*100/aov_delta,integer=True)
+            # tile = kpi3.container(height=240)
+            # tile.header('Blended AOV')
+            # tile.metric(label="", value=f"${aov:,.2f}", delta='11%')
 
         with kpi4:
-            tile = kpi4.container(height=240)
-            tile.header('Blended New Customers')
-            tile.metric(label="", value=f"{new_customers:,}", delta='6%') 
+            kpi_tile(kpi4,tile_text='Blended New Customers', tile_label='', tile_value=new_customers,
+                     tile_value_prefix='',delta_value=(new_customers-new_customers_delta)*100/new_customers_delta,integer=True)
+            # tile = kpi4.container(height=240)
+            # tile.header('Blended New Customers')
+            # tile.metric(label="", value=f"{new_customers:,}", delta='6%') 
 
         # Next row
+        kpi5, kpi6, kpi7 = st.columns(3) # row 2 - 3 KPIs
 
         with kpi5:
-            tile = kpi5.container(height=240)
-            tile.header('Blended Repeat Customers')
-            tile.metric(label="", value=f"{math.floor(total_orders*0.75):,}", delta='6%')     
+            kpi_tile(kpi5,tile_text="**Blended Repeat Customers**", tile_label='', tile_value=repeat_customers,
+                     tile_value_prefix='',delta_value=(repeat_customers-repeat_customers_delta)*100/repeat_customers_delta,integer=True)
+            # tile = kpi5.container(height=240)
+            # tile.header('Blended Repeat Customers')
+            # tile.metric(label="", value=f"{math.floor(total_orders*0.75):,}", delta='6%')     
 
         with kpi6:
-            tile = kpi6.container(height=240)
-            tile.header('Blended Cancellation Rate')
-            tile.metric(label="", value=f"{math.floor(total_orders*0.75):,}", delta='6%', delta_color='inverse') 
+            kpi_tile(kpi6,tile_text='Blended Cancellation Rate', tile_label='', tile_value=1.3,
+                     tile_value_prefix='',delta_value='4',integer=False, delta_color_inversion='inverse', tile_value_suffix='%')
+            # tile = kpi6.container(height=240)
+            # tile.header('Blended Cancellation Rate')
+            # tile.metric(label="", value=f"{math.floor(total_orders*0.75):,}", delta='6%', delta_color='inverse') 
 
         with kpi7:
-            tile = kpi7.container(height=240)
-            tile.header('Blended Discounts')
-            tile.metric(label="", value=f"{math.floor(total_orders*0.75):,}", delta='6%', delta_color='inverse') 
+            kpi_tile(kpi7,tile_text='Blended Discounts', tile_label='', tile_value=total_revenue*0.12,
+                     tile_value_prefix='$',delta_value='1.4',integer=True, delta_color_inversion='inverse')
+            # tile = kpi7.container(height=240)
+            # tile.header('Blended Discounts')
+            # tile.metric(label="", value=f"{math.floor(total_orders*0.75):,}", delta='6%', delta_color='inverse') 
         
     # Total Revenue
-    with st.container(height=630):
-        st.subheader('Blended Revenue [Daily]')
-        col_1, col_2 = st.columns([4,1])
-        with col_2:
-            chart_type = st.radio(
-                "",
-                ["Line Chart", "Bar Chart"], horizontal=True, key=1)
-
-        if chart_type == 'Line Chart':
-            fig = px.line(data_frame=df.groupby('Purchase Date')['Net Sales'].sum())
-        else:
-            fig = px.bar(data_frame=df.groupby('Purchase Date')['Net Sales'].sum())
-    
-        # fig = px.bar(data_frame=df.groupby('Purchase Date')['Net Sales'].sum(),
-        #                   title='Total Revenue [Daily]')
-
-        fig.update(layout_showlegend=False)
-        # fig.update_traces(line=dict(color="Yellow", width=0.4))
-
-        st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+            
+    default_chart(chart_title='Blended Revenue [Daily]',chart_key='tab1_1',chart_df=df.groupby('Purchase Date')['Net Sales'].sum(),
+                  chart_height=630, radio_horizontal=True, color_theme='streamlit')
+    # with st.container(height=630):
+    #     st.subheader('Blended Revenue [Daily]')
+    #     col_1, col_2 = st.columns([4,1])
+    #     with col_2:
+    #         chart_type = st.radio(
+    #             "",
+    #             ["Line Chart", "Bar Chart"], horizontal=True, key=1)
+    #     if chart_type == 'Line Chart':
+    #         fig = px.line(data_frame=df.groupby('Purchase Date')['Net Sales'].sum())
+    #     else:
+    #         fig = px.bar(data_frame=df.groupby('Purchase Date')['Net Sales'].sum())
+    #     fig.update(layout_showlegend=False)
+    #     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
 
     # Total orders  
-    with st.container(height=630):
-        st.subheader('Blended Orders [Daily]')
-        col_1, col_2 = st.columns([4,1])
-        with col_2:
-            chart_type_1 = st.radio(
-                "",
-                ["Line Chart", "Bar Chart"], horizontal=True, key=2)
+    default_chart(chart_title='Blended Orders [Daily]',chart_key='tab1_2',chart_df=df.groupby('Purchase Date')['Order ID'].nunique(),
+                  chart_height=600, radio_horizontal=True, color_theme='streamlit')
+    # with st.container(height=630):
+    #     st.subheader('Blended Orders [Daily]')
+    #     col_1, col_2 = st.columns([4,1])
+    #     with col_2:
+    #         chart_type_1 = st.radio(
+    #             "",
+    #             ["Line Chart", "Bar Chart"], horizontal=True, key=2)
 
-        if chart_type_1 == 'Line Chart':
-            fig = px.line(data_frame=df.groupby('Purchase Date')['Order ID'].nunique())
-        else:
-            fig = px.bar(data_frame=df.groupby('Purchase Date')['Order ID'].nunique())
+    #     if chart_type_1 == 'Line Chart':
+    #         fig = px.line(data_frame=df.groupby('Purchase Date')['Order ID'].nunique())
+    #     else:
+    #         fig = px.bar(data_frame=df.groupby('Purchase Date')['Order ID'].nunique())
 
-        # fig = px.bar(data_frame=df.groupby('Purchase Date')['Order ID'].nunique(),
-        #           title='Total Orders [Daily]')
+    #     # fig = px.bar(data_frame=df.groupby('Purchase Date')['Order ID'].nunique(),
+    #     #           title='Total Orders [Daily]')
 
-        fig.update(layout_showlegend=False)
-        # fig.update_traces(color="Yellow", width=0.4)
+    #     fig.update(layout_showlegend=False)
+    #     # fig.update_traces(color="Yellow", width=0.4)
 
-        st.plotly_chart(fig, theme="streamlit", use_container_width=True)
+    #     st.plotly_chart(fig, theme="streamlit", use_container_width=True)
 
 
     with st.container(height=630):
@@ -270,10 +261,14 @@ with tab2:
         tile = col_00.container(height=100)
         tile.header('Marketplace')
 
-        tile = col_1.container(height=240)
-        tile.subheader('Revenue')
-        # tile.metric(label="", value=f"{total_orders:,}", delta='-1.2%')
-        tile.metric(label="", value=f"${total_revenue_website:,.2f}", delta='9.3%')
+        
+
+        kpi_tile(col_1,tile_text='Revenue', tile_label='', tile_value=total_orders,
+                        tile_value_prefix='',delta_value='2.5%',integer=True)
+        # tile = col_1.container(height=240)
+        # tile.subheader('Revenue')
+        # # tile.metric(label="", value=f"{total_orders:,}", delta='-1.2%')
+        # tile.metric(label="", value=f"${total_revenue_website:,.2f}", delta='9.3%')
 
         with col_2:
             df_website = df.loc[df['Sales Channel']== 'Mobile App', ['Purchase Date', 'Net Sales']].groupby('Purchase Date').sum()
@@ -284,10 +279,11 @@ with tab2:
             chart_data = result_sales
             st.line_chart(chart_data)
 
-        tile = col2_1.container(height=240)
-        tile.subheader('Orders')
-        # tile.metric(label="", value=f"{total_orders:,}", delta='-1.2%')
-        tile.metric(label="", value=f"{total_orders_marketplace:,}", delta='9.3%')
+        kpi_tile(col2_1,tile_text='Orders', tile_label='', tile_value=total_orders_marketplace,
+                        tile_value_prefix='',delta_value='9.3%',integer=True)
+        # tile = col2_1.container(height=240)
+        # tile.subheader('Orders')
+        # tile.metric(label="", value=f"{total_orders_marketplace:,}", delta='9.3%')
 
         with col2_2:
             df_website = df.loc[df['Sales Channel']== 'Mobile App', ['Purchase Date', 'Order ID']].groupby('Purchase Date').count()
@@ -300,10 +296,12 @@ with tab2:
             # chart_data = pd.DataFrame(np.random.randn(20, 2), columns=["a", "b"])
             # st.bar_chart(chart_data)
 
-        tile = col3_1.container(height=240)
-        tile.subheader('AOV')
-        # tile.metric(label="", value=f"{total_orders:,}", delta='-1.2%')
-        tile.metric(label="", value=f"${aov_website:,.2f}", delta='9.3%')
+        kpi_tile(col3_1,tile_text='AOV', tile_label='', tile_value=total_orders_marketplace,
+                        tile_value_prefix='',delta_value='9.3%',integer=True)
+        
+        # tile = col3_1.container(height=240)
+        # tile.subheader('AOV')
+        # tile.metric(label="", value=f"${aov_website:,.2f}", delta='9.3%')
 
         with col3_2:
             result_aov = pd.merge(result_sales, result_order, on='Purchase Date', how='outer')
@@ -384,7 +382,7 @@ with tab3:
     # st.plotly_chart(fig, theme="streamlit", use_container_width=True)
 
 # Start Avi calculations ################################################################################################
-df = pd.read_csv('fake_ecom_data.csv')
+df = pd.read_csv('fake_ecom_data.csv', encoding='utf-8')
 df['Purchase Date'] = pd.to_datetime(df['Purchase Date'])
 df['Quarter'] = df['Purchase Date'].dt.to_period('Q').astype(str)
 df['Order Group'] = pd.cut(df['Items per Order'], bins=[0, 1, 3, float('inf')], right=False, labels=['1 item', '2-3 items', '4+ items'])
@@ -807,7 +805,7 @@ with tab6:  # Avi
 
 # Start Deepak calculations ########################################
 
-ecom_df = pd.read_csv('fake_ecom3.csv')
+ecom_df = pd.read_csv('fake_ecom3.csv',encoding='utf-8')
 ecom_product_agg = ecom_df.groupby(['Product Name']).agg({'Order ID':'nunique', 'Gross Sales':'sum'}).reset_index()
 
 ecom_daily_product_agg = ecom_df.groupby(['Purchase Date','Product Name']).agg({'Order ID':'nunique', 'Gross Sales':'sum'}).reset_index()
@@ -843,7 +841,7 @@ def create_heatmap(data):
 
 ########### Deepak#############
 # read ad performance data
-ads_data = pd.read_csv('fake_ads_data.csv')
+ads_data = pd.read_csv('fake_ads_data.csv', encoding='utf-8')
 ads_data['date'] = pd.to_datetime(ads_data['date'])
 ads_data['Month'] = ads_data['date'].dt.strftime('%Y-%m')
 ads_data = ads_data[ads_data['date']>='2023-01-01']
@@ -859,7 +857,7 @@ campaign = ads_data.groupby(['campaigns']).agg({'impressions':'sum', 'ad_spend':
 
 top_campaign = campaign.sort_values(by=['impressions'], ascending=False)[:10]
 
-ecom_df = pd.read_csv('fake_ecom3.csv')
+ecom_df = pd.read_csv('fake_ecom3.csv', encoding='utf-8')
 ecom_product_agg = ecom_df.groupby(['Product Name']).agg({'Order ID':'nunique', 'Gross Sales':'sum'}).reset_index()
 
 ecom_daily_product_agg = ecom_df.groupby(['Purchase Date','Product Name']).agg({'Order ID':'nunique', 'Gross Sales':'sum'}).reset_index()
@@ -967,7 +965,7 @@ with tab4: #Deepak
         st.altair_chart(chart, theme="streamlit", use_container_width=True)
 
         
-        st.write("Worst performing products")
+        st.write("Worst selling products")
         temp = ecom_monthly_product_agg[ecom_monthly_product_agg['Product Name'].isin(worst_products)]
         chart = alt.Chart(temp).mark_line().encode(
         x='Month',
